@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: timescaledb
+  labels:
+    app: timescaledb
+spec: 
+  selector:
+    matchLabels:
+      app: timescaledb
+  template:
+    metadata:
+      labels:
+        app: timescaledb
+    spec:
+      containers:
+        - name: postgres
+          image: "timescale/pg_prometheus:latest-pg11"
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 5432
+              name: timescaledb
+          env:
+            - name: TS_TUNE_MEMORY
+              value: "12GB"
+            - name: TS_TUNE_NUM_CPUS
+              value: "4"
+          envFrom:
+            - configMapRef:
+                name: timescaledb-config
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: data
+              subPath: timescaledb
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -h
+                - localhost
+                - -U
+                - postgres
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -h
+                - localhost
+                - -U
+                - postgres
+            initialDelaySeconds: 5
+            timeoutSeconds: 1
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: timescaledb-data
