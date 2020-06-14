@@ -7,7 +7,7 @@ In this recipe, the following settings are applied:
 - Password : `ghmuSuWyOb6ewjxfloRG7VYe3DPxRgWMmp2iPh`
 - Available memory allocated to timescaledb: `12GB`
 - Number of CPUs allocated to timescaledb: `4GB`
-- Maximum size of the database: `10GB
+- Maximum size of the database: `10GB`
 
 This document also explains how to do differently.
 
