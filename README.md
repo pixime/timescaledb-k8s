@@ -62,7 +62,7 @@ Then execute the command below to switch to:
 	    requests:
 	      storage: 10Gi
 	      
-> Feel free to update `storage: 10Gi` to fit with your needs`.
+> Feel free to update `storage: 10Gi` to fit with your needs.
 
 ### 1.3.2 Apply
 
