@@ -152,8 +152,8 @@ It is a good practice to define liveness and readiness probes,. To do so, insert
                   - postgres
                 initialDelaySeconds: 5
                 timeoutSeconds: 1
-		   volumes:
-		   ...
+	   volumes:
+	   ...
 		   
 > Ensure that the user `postgres` fit with your settings (ConfigMap above).
 	
