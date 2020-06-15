@@ -256,16 +256,95 @@ Well done! TimescaleDB is installed to K8S, now let's see how to connect to the 
 5. Fill the username field (e.g. postgres) and the password depending on your ConfigMap settings 
 6. Click on the `Save` button to test the connection between pgadmin4 and TimescaleDB.
 
-> If you have configured a LoadBalancer service for TimescaleDB, you can alternatively use it in `Host name/address` field.
+> If you have configured a LoadBalancer service for TimescaleDB, you can alternatively use DNS name provided by the k8s cluster in the `Host name/address` field.
 
 ## 3. What's next ?
 
 ### 3.1 Tune TimescaleDB
 
-<mark>TODO</mark>
+During the TimescaleDB database lifecycle, you might need to increase the available memory. To do so, use the `timescaledb-tune` command in the TimescaleDB container. Let's say for example that you want to increase the memory to 16GB:
+
+1. Ensure that the current namespace is `timescaledb`:
+
+		$ kubectl config set-context --current --namespace=timescaledb
+
+1. Search for the pod name:
+
+		$ kubectl get pods
+
+		NAME                                READY   STATUS    RESTARTS   AGE
+		...
+		timescaledb-7b5b44f9c5-lgv4p        1/1     Running   0          14h
+		
+2. Execute timescaledb-tune and answer yes to every questions:
+
+		$ kubectl exec -it timescaledb-7b5b44f9c5-lgv4p -- timescaledb-tune --memory 16GB
+		
+		Using postgresql.conf at this path:
+		/var/lib/postgresql/data/postgresql.conf
+		
+		Is this correct? [(y)es/(n)o]: y
+		Writing backup to:
+		/tmp/timescaledb_tune.backup202006150709
+		
+		success: shared_preload_libraries is set correctly
+		
+		Tune memory/parallelism/WAL and other settings? [(y)es/(n)o]: y
+		Recommendations based on 16.00 GB of available memory and 4 CPUs for PostgreSQL 11
+		
+		Memory settings recommendations
+		Current:
+		shared_buffers = 3GB
+		effective_cache_size = 9GB
+		maintenance_work_mem = 1536MB
+		work_mem = 7864kB
+		Recommended:
+		shared_buffers = 4GB
+		effective_cache_size = 12GB
+		maintenance_work_mem = 2047MB
+		work_mem = 10485kB
+		Is this okay? [(y)es/(s)kip/(q)uit]: y
+		
+	> The configuration file /var/lib/postgresql/data/postgresql.conf has been updated, but we need to restart TimescaleDB.
+
+3. Execute the following commands
+
+		$ kubectl exec -it timescaledb-7b5b44f9c5-lgv4p -- su postgres
+		/ $ pg_ctl restart
+		waiting for server to shut down....command terminated with exit code 137
+		
+4. Then you can check that TimescaleDB has restarted by verifying that the restarts number of the pod has been incremented:
+
+		$ kubectl get pods
+		NAME                                READY   STATUS    RESTARTS   AGE
+		...
+		timescaledb-7b5b44f9c5-lgv4p        1/1     Running   1          14h
 
 ### 3.2 Increase TimescaleDB volume size
 
-<mark>TODO</mark>
+1. Prior to resize the K8s volume, it is often recommended to stop all active connections to the targeted volume :
 
+		$ kubectl scale --replicas=0 deployment/timescaledb
+		
+2. Check the name of the volume:
+
+		$ kubectl get pvc
+		NAME               STATUS   VOLUME     CAPACITY   ACCESS MODES   STORAGECLASS            AGE
+		...
+		timescaledb-data   Bound    ...        10Gi       RWO            csi-cinder-high-speed   15h
+		
+2. Resize the volume to the desired amount of data
+
+		$ kubectl patch pvc timescaledb-data -p '{ "spec": { "resources": { "requests": { "storage": "20Gi" }}}}'
+		
+3. Restart TimescaleDB
+
+		kubectl scale --replicas=1 deployment/timescaledb
+		
+4. Finally, check the new volume size
+
+		$ kubectl get pvc
+		NAME               STATUS   VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS            AGE
+		pgadmin-pgadmin4   Bound    ...      20Gi       RWO            csi-cinder-high-speed   14h
+		
 
